@@ -3,7 +3,7 @@ import { z } from "zod";
 
 const createNoteSchema = z.object({
   title: z.string().min(1).max(200),
-  content: z.string(),
+  content: z.string().default(""),
   notebookId: z.string().optional(),
   theme: z.string().default("minimal"),
   isDraft: z.boolean().default(false),

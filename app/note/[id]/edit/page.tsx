@@ -175,7 +175,9 @@ export default function EditNotePage({ params }: { params: { id: string } }) {
     <div className="editor-page">
       {/* 顶部导航栏 */}
       <header className="editor-header">
-        <button className="back-btn" onClick={() => router.push("/bookshelf")}>← 返回</button>
+        <div className="header-left">
+          <button className="back-btn" onClick={() => router.push("/bookshelf")}>← 返回</button>
+        </div>
         <input 
           type="text" 
           className="title-input" 
@@ -184,14 +186,15 @@ export default function EditNotePage({ params }: { params: { id: string } }) {
           onChange={(e) => setTitle(e.target.value)}
         />
         <div className="header-actions">
-          <span className="label">标签</span>
-          <select className="form-select">
-            <option>个人日记</option>
-            <option>旅行笔记</option>
-          </select>
-          <select className="form-select" value={theme} onChange={(e) => setTheme(e.target.value)}>
-            {editorThemes.map((t) => (
-              <option key={t.id} value={t.id}>{t.name}</option>
+          <span className="label">小册子</span>
+          <select 
+            className="form-select" 
+            value={notebookId || ""} 
+            onChange={(e) => setNotebookId(e.target.value || null)}
+          >
+            <option value="">无</option>
+            {notebooks.map((notebook) => (
+              <option key={notebook.id} value={notebook.id}>{notebook.title}</option>
             ))}
           </select>
           <button 
@@ -252,14 +255,19 @@ export default function EditNotePage({ params }: { params: { id: string } }) {
           top: 0;
           z-index: 50;
         }
+        .header-left {
+          display: flex;
+          align-items: center;
+        }
         .back-btn {
           border: none;
           background: transparent;
           color: #4a6c59;
-          padding: 6px 12px;
+          padding: 8px 20px;
           border-radius: 6px;
           cursor: pointer;
           transition: background-color 0.2s;
+          font-weight: 500;
         }
         .back-btn:hover {
           background-color: #f0f0f0;
