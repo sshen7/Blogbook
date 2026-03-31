@@ -48,10 +48,10 @@ export function htmlToMarkdown(html: string): string {
   );
 
   // Lists
-  markdown = markdown.replace(/<ul[^>]*>(.*?)<\/ul>/gis, (match, content) => {
+  markdown = markdown.replace(/<ul[^>]*>([\s\S]*?)<\/ul>/gi, (match, content) => {
     return content.replace(/<li[^>]*>(.*?)<\/li>/gi, "- $1\n");
   });
-  markdown = markdown.replace(/<ol[^>]*>(.*?)<\/ol>/gis, (match, content) => {
+  markdown = markdown.replace(/<ol[^>]*>([\s\S]*?)<\/ol>/gi, (match, content) => {
     let index = 1;
     return content.replace(/<li[^>]*>(.*?)<\/li>/gi, () => {
       return `${index++}. $1\n`;

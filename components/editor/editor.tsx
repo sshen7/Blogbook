@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useCallback } from "react";
-import { useEditor, EditorContent, BubbleMenu } from "@tiptap/react";
+import { useEditor, EditorContent, BubbleMenu, type Editor as TiptapEditor } from "@tiptap/react";
 import { editorExtensions, markdownShortcuts, wordCountExtension } from "@/lib/editor";
 import { generateThemeStyles, getThemeById } from "@/lib/themes";
 import { cn } from "@/lib/utils";
@@ -46,7 +46,7 @@ export function Editor({
     editable,
     immediatelyRender: true,
     onUpdate: useCallback(
-      ({ editor }) => {
+      ({ editor }: { editor: TiptapEditor }) => {
         const html = editor.getHTML();
         onChange?.(html);
 
@@ -65,10 +65,7 @@ export function Editor({
           "prose prose-lg max-w-none focus:outline-none min-h-[300px] px-8 py-12 border-none",
           `editor-theme-${theme}`
         ),
-        style: {
-          border: 'none',
-          outline: 'none'
-        }
+        style: 'border: none; outline: none;'
       },
       handleKeyDown: (view, event) => {
         // 处理自定义快捷键

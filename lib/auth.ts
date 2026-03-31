@@ -33,14 +33,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async session({ token, session }) {
       if (token) {
-        session.user.id = token.id;
-        session.user.name = token.name;
-        session.user.email = token.email;
-        session.user.image = token.picture;
+        if (token.id) session.user.id = token.id;
+        if (token.name) session.user.name = token.name;
+        if (token.email) session.user.email = token.email;
+        if (token.picture) session.user.image = token.picture;
       }
       return session;
     },
     async jwt({ token, user }) {
+      if (!token.email) {
+        if (user) {
+          token.id = user?.id;
+        }
+        return token;
+      }
+
       const dbUser = await prisma.user.findFirst({
         where: {
           email: token.email,

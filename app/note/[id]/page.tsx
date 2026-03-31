@@ -176,13 +176,13 @@ export default function NotePage({ params }: { params: { id: string } }) {
       </head>
       <body>
         <h1>${note.title || "无标题"}</h1>
-        <div class="meta">
+        <div className="meta">
           创建于 ${formatDateTime(note.createdAt)} · ${note.wordCount} 字
         </div>
-        <div class="content">
+        <div className="content">
           ${note.content}
         </div>
-        <div class="update-time">
+        <div className="update-time">
           最后更新于 ${formatDateTime(note.updatedAt)}
         </div>
       </body>
@@ -258,13 +258,13 @@ export default function NotePage({ params }: { params: { id: string } }) {
       </head>
       <body>
         <h1>${note.title || "无标题"}</h1>
-        <div class="meta">
+        <div className="meta">
           创建于 ${formatDateTime(note.createdAt)} · ${note.wordCount} 字
         </div>
-        <div class="content">
+        <div className="content">
           ${note.content}
         </div>
-        <div class="update-time">
+        <div className="update-time">
           最后更新于 ${formatDateTime(note.updatedAt)}
         </div>
       </body>
@@ -337,47 +337,47 @@ ${textContent}
   const theme = getThemeById(note.theme);
 
   return (
-    <div class="note-detail-page"> 
+    <div className="note-detail-page"> 
       
       {/* 🔝 顶部导航栏（和其他页面统一） */} 
-      <header class="page-header"> 
-        <div class="header-left"> 
+      <header className="page-header"> 
+        <div className="header-left"> 
           <button 
-            class="back-btn"
+            className="back-btn"
             onClick={() => router.push("/bookshelf")}
           >←</button> 
         </div> 
-        <div class="header-right"> 
+        <div className="header-right"> 
           <button 
-            class="icon-btn" 
+            className="icon-btn" 
             title="返回小册子"
             onClick={() => router.push(note.notebook ? `/notebook/${note.notebook.id}` : "/bookshelf")}
           >📔</button> 
           <button 
-            class="icon-btn" 
+            className="icon-btn" 
             title="添加星标"
             onClick={handleStar}
           >⭐</button> 
           <button 
-            class="icon-btn" 
+            className="icon-btn" 
             title="导出"
             onClick={handleExport}
           >📥</button> 
           <button 
-            class="icon-btn" 
+            className="icon-btn" 
             title="更多"
           >⋮</button> 
           <button 
-            class="primary-btn"
+            className="primary-btn"
             onClick={() => router.push(`/note/${params.id}/edit`)}
           >编辑</button> 
         </div> 
       </header> 
 
       {/* 📝 笔记标题区 */} 
-      <div class="note-title-wrapper"> 
-        <h1 class="note-title">{note.title || "无标题"}</h1> 
-        <div class="note-meta"> 
+      <div className="note-title-wrapper"> 
+        <h1 className="note-title">{note.title || "无标题"}</h1> 
+        <div className="note-meta"> 
           <span>📅 创建于 {formatDateTime(note.createdAt)}</span> 
           <span>·</span> 
           <span>📄 {note.wordCount} 字</span> 
@@ -385,13 +385,13 @@ ${textContent}
       </div> 
 
       {/* 📄 笔记内容区（纸感卡片） */} 
-      <main class="note-content-card"> 
+      <main className="note-content-card"> 
         <div 
-          class="note-content"
+          className="note-content"
           dangerouslySetInnerHTML={{ __html: note.content }}
         > 
         </div> 
-        <div class="update-time"> 
+        <div className="update-time"> 
           最后更新于 {formatDateTime(note.updatedAt)} 
         </div> 
       </main> 

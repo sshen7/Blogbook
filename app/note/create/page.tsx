@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Editor } from "@/components/editor/editor";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
-export default function CreateNotePage() {
+function CreateNoteContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const notebookId = searchParams.get('notebookId');
@@ -329,5 +330,13 @@ export default function CreateNotePage() {
         }
       `}</style>
     </div>
+  );
+}
+
+export default function CreateNotePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>}>
+      <CreateNoteContent />
+    </Suspense>
   );
 }
