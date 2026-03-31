@@ -67,112 +67,13 @@ export async function GET(req: NextRequest) {
     const noteId = searchParams.get("id");
     const notebookId = searchParams.get("notebookId");
 
-    // 暂时返回模拟数据
+    // 返回空数组，避免显示测试笔记
     if (noteId) {
-      // 模拟单个笔记
-      const mockNote = {
-        id: noteId,
-        title: "示例笔记",
-        content: "<p>这是一条示例笔记内容</p>",
-        contentPlain: "这是一条示例笔记内容",
-        wordCount: 10,
-        theme: "minimal",
-        isDraft: false,
-        notebookId: notebookId || "1",
-        userId,
-        tags: [],
-        notebook: null,
-        _count: {
-          images: 0,
-        },
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      return NextResponse.json(mockNote);
+      // 找不到笔记时返回404
+      return NextResponse.json({ error: "笔记不存在" }, { status: 404 });
     } else {
-      // 模拟笔记列表
-      const mockNotes = [
-        {
-          id: "note_1",
-          title: "个人日记 - 第一天",
-          content: "<p>今天是开始写日记的第一天，希望能坚持下去。</p>",
-          contentPlain: "今天是开始写日记的第一天，希望能坚持下去。",
-          wordCount: 15,
-          theme: "minimal",
-          isDraft: false,
-          notebookId: "1",
-          userId,
-          tags: [],
-          notebook: null,
-          _count: {
-            images: 0,
-          },
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: "note_2",
-          title: "个人日记 - 第二天",
-          content: "<p>今天天气很好，出去散步了。</p>",
-          contentPlain: "今天天气很好，出去散步了。",
-          wordCount: 10,
-          theme: "minimal",
-          isDraft: false,
-          notebookId: "1",
-          userId,
-          tags: [],
-          notebook: null,
-          _count: {
-            images: 0,
-          },
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: "note_3",
-          title: "工作笔记 - 项目计划",
-          content: "<p>下周项目启动，需要准备相关材料。</p>",
-          contentPlain: "下周项目启动，需要准备相关材料。",
-          wordCount: 12,
-          theme: "minimal",
-          isDraft: false,
-          notebookId: "2",
-          userId,
-          tags: [],
-          notebook: null,
-          _count: {
-            images: 0,
-          },
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: "note_4",
-          title: "学习资料 - 编程笔记",
-          content: "<p>今天学习了新的编程技巧。</p>",
-          contentPlain: "今天学习了新的编程技巧。",
-          wordCount: 10,
-          theme: "minimal",
-          isDraft: false,
-          notebookId: "3",
-          userId,
-          tags: [],
-          notebook: null,
-          _count: {
-            images: 0,
-          },
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      ];
-
-      // 如果指定了笔记本ID，只返回该笔记本的笔记
-      if (notebookId) {
-        const filteredNotes = mockNotes.filter(note => note.notebookId === notebookId);
-        return NextResponse.json(filteredNotes);
-      }
-
-      return NextResponse.json(mockNotes);
+      // 返回空数组，不显示测试笔记
+      return NextResponse.json([]);
     }
   } catch (error) {
     console.error("获取笔记失败:", error);

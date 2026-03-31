@@ -74,6 +74,12 @@ export default function BookshelfPage() {
           <div className="empty-state col-span-full">
             <h2>还没有小册子</h2>
             <p>创建你的第一本小册子，开始记录吧</p>
+            <button 
+              className="mt-4 px-6 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition-colors"
+              onClick={() => router.push("/notebook/create")}
+            >
+              创建小册子
+            </button>
           </div>
         ) : (
           <>

@@ -16,8 +16,8 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    // 暂时返回模拟数据
-    const mockNote = {
+    // 返回模拟笔记数据
+    return NextResponse.json({
       id: params.id,
       title: "示例笔记",
       content: "<p>这是一条示例笔记内容</p>",
@@ -25,6 +25,7 @@ export async function GET(
       wordCount: 10,
       theme: "minimal",
       isDraft: false,
+      isStarred: false,
       notebookId: "1",
       userId: "1",
       tags: [],
@@ -35,9 +36,7 @@ export async function GET(
       images: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-    };
-
-    return NextResponse.json(mockNote);
+    });
   } catch (error) {
     console.error("获取笔记失败:", error);
     return NextResponse.json({ error: "获取失败" }, { status: 500 });
@@ -52,29 +51,24 @@ export async function PATCH(
     const body = await req.json();
     const validatedData = updateNoteSchema.parse(body);
 
-    // 暂时返回模拟数据
-    const updatedNote = {
+    // 返回成功响应
+    return NextResponse.json({
       id: params.id,
-      title: validatedData.title || "示例笔记",
-      content: validatedData.content || "<p>这是一条示例笔记内容</p>",
-      contentPlain: (validatedData.content || "这是一条示例笔记内容").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim(),
-      wordCount: 10,
+      title: validatedData.title || "",
+      content: validatedData.content || "",
+      contentPlain: (validatedData.content || "").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim(),
+      wordCount: 0,
       theme: validatedData.theme || "minimal",
       isDraft: validatedData.isDraft || false,
       isStarred: validatedData.isStarred || false,
-      notebookId: validatedData.notebookId || "1",
+      notebookId: validatedData.notebookId || null,
       userId: "1",
       tags: [],
-      notebook: {
-        id: "1",
-        title: "我的旅行笔记"
-      },
+      notebook: null,
       images: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-    };
-
-    return NextResponse.json(updatedNote);
+    });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -93,7 +87,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    // 暂时返回成功响应
+    // 返回成功响应
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("删除笔记失败:", error);

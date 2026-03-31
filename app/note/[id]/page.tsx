@@ -63,11 +63,15 @@ export default function NotePage({ params }: { params: { id: string } }) {
   const fetchNote = async () => {
     try {
       const response = await fetch(`/api/notes/${params.id}`);
-      if (!response.ok) throw new Error("获取失败");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "获取失败");
+      }
       const data = await response.json();
       setNote(data);
     } catch (error) {
       toast.error("获取笔记失败");
+      setNote(null);
     } finally {
       setIsLoading(false);
     }
