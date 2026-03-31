@@ -3,9 +3,9 @@ import { z } from "zod";
 import { memoryStorage } from "@/lib/memory-storage";
 
 const createNoteSchema = z.object({
-  title: z.string().min(1).max(200),
+  title: z.string().max(200).optional().nullable(),
   content: z.string().default(""),
-  notebookId: z.string().optional(),
+  notebookId: z.string().optional().nullable(),
   theme: z.string().default("minimal"),
   isDraft: z.boolean().default(false),
   tagIds: z.array(z.string()).optional(),

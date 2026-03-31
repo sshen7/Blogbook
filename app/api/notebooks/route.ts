@@ -77,12 +77,15 @@ export async function GET(req: NextRequest) {
 // 更新笔记本
 export async function PATCH(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { id, ...updateData } = body;
-
+    // 从URL查询参数中获取id
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+    
     if (!id) {
       return NextResponse.json({ error: "缺少ID" }, { status: 400 });
     }
+
+    const body = await req.json();
 
     // 查找要更新的笔记本
     const existingNotebook = memoryStorage.notebooks.get(id);
@@ -93,7 +96,7 @@ export async function PATCH(req: NextRequest) {
     // 更新笔记本
     const updatedNotebook = {
       ...existingNotebook,
-      ...updateData,
+      ...body,
       updatedAt: new Date().toISOString(),
     };
 
