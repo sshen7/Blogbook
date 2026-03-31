@@ -1,0 +1,88 @@
+# Zine Notes - Docker Compose Configuration
+# 一键启动 Next.js 应用 + MySQL 数据库
+
+version: '3.8'
+
+services:
+  # MySQL 数据库服务
+  mysql:
+    image: mysql:8.0
+    container_name: zine-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-zine_root_password}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-zine_notes}
+      MYSQL_USER: ${MYSQL_USER:-zine_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-zine_password}
+      TZ: Asia/Shanghai
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./scripts/init-mysql.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-zine_root_password}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - zine-network
+
+  # Next.js 应用服务
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: zine-app
+    restart: unless-stopped
+    environment:
+      # 数据库连接
+      DATABASE_URL: mysql://${MYSQL_USER:-zine_user}:${MYSQL_PASSWORD:-zine_password}@mysql:3306/${MYSQL_DATABASE:-zine_notes}
+      
+      # NextAuth 配置
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-your-super-secret-key-change-in-production}
+      
+      # 加密密钥 (必须是 32 个字符)
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-your-32-char-encryption-key-here!!}
+      
+      # 存储配置
+      STORAGE_PROVIDER: ${STORAGE_PROVIDER:-local}
+      
+      # OAuth 配置 (可选)
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      
+      # 其他配置
+      NODE_ENV: production
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    volumes:
+      # 持久化上传的文件
+      - app_uploads:/app/public/uploads
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - zine-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  mysql_data:
+    driver: local
+  app_uploads:
+    driver: local
+
+networks:
+  zine-network:
+    driver: bridge

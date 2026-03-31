@@ -1,0 +1,174 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model User {
+  id             String    @id @default(cuid())
+  name           String?
+  email          String    @unique
+  emailVerified  DateTime? @map("email_verified")
+  image          String?
+  passwordHash   String?   @map("password_hash")
+  autoLock       Boolean   @default(false) @map("auto_lock")
+  theme          String    @default("minimal")
+  fontSize       String    @default("medium") @map("font_size")
+  lineHeight     String    @default("relaxed") @map("line_height")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  accounts       Account[]
+  sessions       Session[]
+  notebooks      Notebook[]
+  notes          Note[]
+  tags           Tag[]
+  images         Image[]
+  templates      Template[]
+  deletedNotes   DeletedNote[]
+
+  @@map("users")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model Notebook {
+  id            String    @id @default(cuid())
+  title         String
+  description   String?
+  coverType     String    @default("color") @map("cover_type")
+  coverValue    String    @default("#f5f5f5") @map("cover_value")
+  theme         String    @default("minimal")
+  sortOrder     Int       @default(0) @map("sort_order")
+  isArchived    Boolean   @default(false) @map("is_archived")
+  isEncrypted   Boolean   @default(false) @map("is_encrypted")
+  passwordHash  String?   @map("password_hash")
+  userId        String    @map("user_id")
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  notes         Note[]
+
+  @@map("notebooks")
+}
+
+model Note {
+  id            String     @id @default(cuid())
+  title         String?
+  content       String     @db.Text
+  contentPlain  String?    @db.Text @map("content_plain")
+  order         Int        @default(0)
+  isStarred     Boolean    @default(false) @map("is_starred")
+  isDraft       Boolean    @default(false) @map("is_draft")
+  wordCount     Int        @default(0) @map("word_count")
+  notebookId    String?    @map("notebook_id")
+  notebook      Notebook?  @relation(fields: [notebookId], references: [id], onDelete: SetNull)
+  userId        String?    @map("user_id")
+  user          User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+
+  tags          Tag[]
+  images        Image[]
+
+  @@map("notes")
+}
+
+model Tag {
+  id          String   @id @default(cuid())
+  name        String
+  color       String   @default("#888888")
+  usageCount  Int      @default(0) @map("usage_count")
+  userId      String   @map("user_id")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  notes       Note[]
+
+  @@unique([userId, name])
+  @@map("tags")
+}
+
+model Image {
+  id            String   @id @default(cuid())
+  url           String
+  thumbnailUrl  String?  @map("thumbnail_url")
+  filename      String
+  size          Int
+  width         Int?
+  height        Int?
+  userId        String   @map("user_id")
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  noteId        String?  @map("note_id")
+  note          Note?    @relation(fields: [noteId], references: [id], onDelete: SetNull)
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@map("images")
+}
+
+model DeletedNote {
+  id              String   @id @default(cuid())
+  originalId      String   @map("original_id")
+  title           String?
+  content         String   @db.Text
+  notebookTitle   String?  @map("notebook_title")
+  userId          String   @map("user_id")
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deletedAt       DateTime @default(now()) @map("deleted_at")
+  expiresAt       DateTime @map("expires_at")
+
+  @@map("deleted_notes")
+}
+
+model Template {
+  id          String   @id @default(cuid())
+  name        String
+  config      String   @db.Text
+  isDefault   Boolean  @default(false) @map("is_default")
+  userId      String   @map("user_id")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("templates")
+}
