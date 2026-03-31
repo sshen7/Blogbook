@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 // 获取回收站笔记（已删除的笔记）
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
+    // 从数据库查询所有已删除的笔记
     const deletedNotes = await prisma.note.findMany({
       where: { isDeleted: true },
       orderBy: { updatedAt: "desc" },
@@ -28,12 +29,8 @@ export async function GET(req: NextRequest) {
 // 恢复笔记（从回收站恢复）
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { id } = body;
-
-    if (!id) {
-      return NextResponse.json({ error: "缺少笔记ID" }, { status: 400 });
-    }
+    const { id } = await req.json();
+    if (!id) return NextResponse.json({ error: "缺少笔记ID" }, { status: 400 });
 
     const restoredNote = await prisma.note.update({
       where: { id },
@@ -52,15 +49,9 @@ export async function DELETE(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
+    if (!id) return NextResponse.json({ error: "缺少笔记ID" }, { status: 400 });
 
-    if (!id) {
-      return NextResponse.json({ error: "缺少笔记ID" }, { status: 400 });
-    }
-
-    await prisma.note.delete({
-      where: { id },
-    });
-
+    await prisma.note.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("永久删除笔记失败:", error);
