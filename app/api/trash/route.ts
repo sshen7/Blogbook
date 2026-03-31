@@ -5,15 +5,13 @@ import { prisma } from "@/lib/prisma";
 export async function GET() {
   try {
     // 从数据库查询所有已删除的笔记
-    const deletedNotes: any[] = await prisma.note.findMany({
-      where: { isDeleted: true },
-      orderBy: { updatedAt: "desc" },
+    const deletedNotes: any[] = await prisma.deletedNote.findMany({
+      orderBy: { deletedAt: "desc" },
       include: {
-        notebook: {
+        user: {
           select: {
             id: true,
-            title: true,
-            coverValue: true,
+            name: true,
           },
         },
       },
@@ -32,10 +30,26 @@ export async function POST(req: NextRequest) {
     const { id } = await req.json();
     if (!id) return NextResponse.json({ error: "缺少笔记ID" }, { status: 400 });
 
-    const restoredNote = await prisma.note.update({
+    // 从DeletedNote中获取笔记信息
+    const deletedNote = await prisma.deletedNote.findUnique({
       where: { id },
-      data: { isDeleted: false, updatedAt: new Date() },
     });
+
+    if (!deletedNote) return NextResponse.json({ error: "笔记不存在" }, { status: 404 });
+
+    // 创建新的Note
+    const restoredNote = await prisma.note.create({
+      data: {
+        title: deletedNote.title,
+        content: deletedNote.content,
+        userId: deletedNote.userId,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+
+    // 删除DeletedNote
+    await prisma.deletedNote.delete({ where: { id } });
 
     return NextResponse.json(restoredNote);
   } catch (error) {
@@ -51,7 +65,7 @@ export async function DELETE(req: NextRequest) {
     const id = searchParams.get("id");
     if (!id) return NextResponse.json({ error: "缺少笔记ID" }, { status: 400 });
 
-    await prisma.note.delete({ where: { id } });
+    await prisma.deletedNote.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("永久删除笔记失败:", error);
