@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     const newNotebook = {
       id: `notebook_${Date.now()}`,
       title: validatedData.title,
-      description: validatedData.description,
+      description: validatedData.description || null,
       coverType: validatedData.coverType,
       coverValue: validatedData.coverValue,
       theme: validatedData.theme,
@@ -32,9 +32,9 @@ export async function POST(req: NextRequest) {
     };
 
     // 存储到内存中
-    memoryStorage.notebooks.create(newNotebook);
+    const createdNotebook = memoryStorage.notebooks.create(newNotebook);
 
-    return NextResponse.json(newNotebook, { status: 201 });
+    return NextResponse.json(createdNotebook, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
