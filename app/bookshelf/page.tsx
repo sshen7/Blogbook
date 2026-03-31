@@ -99,12 +99,20 @@ export default function BookshelfPage() {
                     <span>{notebook._count.notes} 篇笔记</span>
                     <span>{formatDate(notebook.createdAt)}</span>
                   </div>
-                  <button 
-                    className="booklet-card-btn"
-                    onClick={() => router.push(`/notebook/${notebook.id}`)}
-                  >
-                    查看
-                  </button>
+                  <div className="booklet-card-buttons">
+                    <button 
+                      className="booklet-card-btn"
+                      onClick={() => router.push(`/notebook/${notebook.id}`)}
+                    >
+                      查看
+                    </button>
+                    <button 
+                      className="booklet-card-btn secondary"
+                      onClick={() => router.push(`/notebook/${notebook.id}/edit`)}
+                    >
+                      编辑
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}

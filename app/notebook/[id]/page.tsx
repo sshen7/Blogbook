@@ -46,7 +46,7 @@ export default function NotebookPage({ params }: { params: { id: string } }) {
 
   const fetchNotebook = async () => {
     try {
-      const response = await fetch(`/api/notebooks/${params.id}`);
+      const response = await fetch(`/api/notebooks?id=${params.id}`);
       if (!response.ok) {
         throw new Error("获取失败");
       }

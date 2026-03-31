@@ -62,7 +62,7 @@ export default function NotePage({ params }: { params: { id: string } }) {
 
   const fetchNote = async () => {
     try {
-      const response = await fetch(`/api/notes/${params.id}`);
+      const response = await fetch(`/api/notes?id=${params.id}`);
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || "获取失败");
@@ -81,7 +81,7 @@ export default function NotePage({ params }: { params: { id: string } }) {
     if (!note) return;
 
     try {
-      const response = await fetch(`/api/notes/${params.id}`, {
+      const response = await fetch(`/api/notes?id=${params.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isStarred: !note.isStarred }),
@@ -100,7 +100,7 @@ export default function NotePage({ params }: { params: { id: string } }) {
     if (!confirm("确定要删除这篇笔记吗？")) return;
 
     try {
-      const response = await fetch(`/api/notes/${params.id}`, {
+      const response = await fetch(`/api/notes?id=${params.id}`, {
         method: "DELETE",
       });
 
@@ -369,8 +369,9 @@ ${textContent}
           >📥</button> 
           <button 
             className="icon-btn" 
-            title="更多"
-          >⋮</button> 
+            title="笔记列表"
+            onClick={() => router.push("/notes")}
+          >📜</button> 
           <button 
             className="primary-btn"
             onClick={() => router.push(`/note/${params.id}/edit`)}

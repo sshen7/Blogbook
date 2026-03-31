@@ -75,7 +75,7 @@ export default function EditNotePage({ params }: { params: { id: string } }) {
   const fetchData = async () => {
     try {
       const [noteRes, notebooksRes, tagsRes] = await Promise.all([
-        fetch(`/api/notes/${params.id}`),
+        fetch(`/api/notes?id=${params.id}`),
         fetch("/api/notebooks"),
         fetch("/api/tags"),
       ]);
@@ -116,7 +116,7 @@ export default function EditNotePage({ params }: { params: { id: string } }) {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const response = await fetch(`/api/notes/${params.id}`, {
+      const response = await fetch(`/api/notes?id=${params.id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",

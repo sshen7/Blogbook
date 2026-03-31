@@ -48,7 +48,7 @@ export default function EditNotebookPage({ params }: { params: { id: string } })
 
   const fetchNotebook = async () => {
     try {
-      const response = await fetch(`/api/notebooks/${params.id}`);
+      const response = await fetch(`/api/notebooks?id=${params.id}`);
       if (!response.ok) throw new Error("获取失败");
       const data = await response.json();
       setNotebook(data);
@@ -72,7 +72,7 @@ export default function EditNotebookPage({ params }: { params: { id: string } })
 
     setIsSaving(true);
     try {
-      const response = await fetch(`/api/notebooks/${params.id}`, {
+      const response = await fetch(`/api/notebooks?id=${params.id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",

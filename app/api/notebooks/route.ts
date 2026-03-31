@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { memoryStorage } from "@/lib/memory-storage";
 
 const createNotebookSchema = z.object({
   title: z.string().min(1).max(100),
@@ -16,21 +16,23 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const validatedData = createNotebookSchema.parse(body);
 
-    const newNotebook = await prisma.notebook.create({
-      data: {
-        title: validatedData.title,
-        description: validatedData.description,
-        coverType: validatedData.coverType,
-        coverValue: validatedData.coverValue,
-        theme: validatedData.theme,
-        sortOrder: 0,
-        userId: "1",
-        isArchived: false,
-      },
-      include: {
-        _count: { select: { notes: true } },
-      },
-    });
+    const newNotebook = {
+      id: `notebook_${Date.now()}`,
+      title: validatedData.title,
+      description: validatedData.description,
+      coverType: validatedData.coverType,
+      coverValue: validatedData.coverValue,
+      theme: validatedData.theme,
+      sortOrder: 0,
+      userId: "1",
+      isArchived: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      _count: { notes: 0 }
+    };
+
+    // 存储到内存中
+    memoryStorage.notebooks.create(newNotebook);
 
     return NextResponse.json(newNotebook, { status: 201 });
   } catch (error) {
@@ -46,18 +48,26 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// 获取所有笔记本
+// 获取所有笔记本或单个笔记本
 export async function GET(req: NextRequest) {
   try {
-    const notebooks = await prisma.notebook.findMany({
-      where: { isArchived: false },
-      orderBy: { sortOrder: "asc" },
-      include: {
-        _count: { select: { notes: true } },
-      },
-    });
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
 
-    return NextResponse.json(notebooks);
+    if (id) {
+      // 获取单个笔记本
+      const notebook = memoryStorage.notebooks.get(id);
+      if (!notebook) {
+        return NextResponse.json({ error: "笔记本不存在" }, { status: 404 });
+      }
+      return NextResponse.json(notebook);
+    } else {
+      // 获取所有笔记本
+      const filteredNotebooks = memoryStorage.notebooks.get()
+        .sort((a, b) => a.sortOrder - b.sortOrder);
+
+      return NextResponse.json(filteredNotebooks);
+    }
   } catch (error) {
     console.error("获取笔记本失败:", error);
     return NextResponse.json({ error: "获取失败" }, { status: 500 });
@@ -74,16 +84,24 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "缺少ID" }, { status: 400 });
     }
 
-    const updatedNotebook = await prisma.notebook.update({
-      where: { id },
-      data: {
-        ...updateData,
-        updatedAt: new Date(),
-      },
-      include: {
-        _count: { select: { notes: true } },
-      },
-    });
+    // 查找要更新的笔记本
+    const existingNotebook = memoryStorage.notebooks.get(id);
+    if (!existingNotebook) {
+      return NextResponse.json({ error: "笔记本不存在" }, { status: 404 });
+    }
+
+    // 更新笔记本
+    const updatedNotebook = {
+      ...existingNotebook,
+      ...updateData,
+      updatedAt: new Date().toISOString(),
+    };
+
+    // 保存更新
+    const result = memoryStorage.notebooks.update(id, updatedNotebook);
+    if (!result) {
+      return NextResponse.json({ error: "更新失败" }, { status: 500 });
+    }
 
     return NextResponse.json(updatedNotebook);
   } catch (error) {
@@ -102,9 +120,11 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: "缺少ID" }, { status: 400 });
     }
 
-    await prisma.notebook.delete({
-      where: { id },
-    });
+    // 删除笔记本
+    const success = memoryStorage.notebooks.delete(id);
+    if (!success) {
+      return NextResponse.json({ error: "笔记本不存在" }, { status: 404 });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

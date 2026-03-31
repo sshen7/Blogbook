@@ -235,21 +235,32 @@
   color: #999; 
   margin-bottom: 1rem; 
 }
-.booklet-card-btn { 
-  width: 100%; 
-  padding: 0.5rem; 
-  background: #4a6c59; 
-  color: #fff; 
-  border: none; 
-  border-radius: 6px; 
-  font-size: 0.9rem; 
-  cursor: pointer; 
-  transition: background 0.2s; 
-  margin-top: auto; 
-  margin-bottom: 0; 
+.booklet-card-buttons {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: auto;
 }
-.booklet-card-btn:hover { 
-  background: #3a5445; 
+.booklet-card-btn {
+  flex: 1;
+  padding: 0.5rem;
+  background: #4a6c59;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-bottom: 0;
+}
+.booklet-card-btn:hover {
+  background: #3a5445;
+}
+.booklet-card-btn.secondary {
+  background: #f0f0f0;
+  color: #333;
+}
+.booklet-card-btn.secondary:hover {
+  background: #e0e0e0;
 }
 
 /* 空状态 */ 
