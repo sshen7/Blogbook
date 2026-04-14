@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { memoryStorage } from "@/lib/memory-storage";
+import { withErrorHandler } from "@/lib/api-middleware";
+import { noteService } from "@/lib/prisma-service";
 
 const createNoteSchema = z.object({
   title: z.string().max(200).optional().nullable(),
@@ -11,170 +12,131 @@ const createNoteSchema = z.object({
   tagIds: z.array(z.string()).optional(),
 });
 
-export async function POST(req: NextRequest) {
-  try {
-    // 暂时允许未登录用户创建笔记
-    const userId = "1";
-
-    const body = await req.json();
-    const validatedData = createNoteSchema.parse(body);
-
-    // Extract plain text for search
-    const contentPlain = validatedData.content
-      .replace(/<[^>]*>/g, "")
-      .replace(/\s+/g, " ")
-      .trim();
-
-    // Count words (Chinese characters count as words)
-    const wordCount = contentPlain.length;
-
-    // 创建新笔记
-    const newNote = {
-      id: `note_${Date.now()}`,
-      title: validatedData.title,
-      content: validatedData.content,
-      contentPlain,
-      wordCount,
-      theme: validatedData.theme,
-      isDraft: validatedData.isDraft,
-      notebookId: validatedData.notebookId,
-      userId,
-      tags: [],
-      notebook: null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    // 存储到内存中
-    memoryStorage.notes.create(newNote);
-
-    return NextResponse.json(newNote, { status: 201 });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: "数据验证失败", details: error.errors },
-        { status: 400 }
-      );
-    }
-
-    console.error("创建笔记失败:", error);
-    return NextResponse.json({ error: "创建失败" }, { status: 500 });
+// 创建笔记
+export const POST = withErrorHandler(async (req: NextRequest) => {
+  const session = await auth();
+  if (!session?.user?.id) {
+    throw new AuthError();
   }
-}
 
-export async function GET(req: NextRequest) {
-  try {
-    // 暂时允许未登录用户获取笔记
-    const userId = "1";
+  const body = await req.json();
+  const validatedData = createNoteSchema.parse(body);
 
-    const { searchParams } = new URL(req.url);
-    const noteId = searchParams.get("id");
-    const notebookId = searchParams.get("notebookId");
+  // Extract plain text for search
+  const contentPlain = validatedData.content
+    .replace(/<[^>]*>/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 
-    if (noteId) {
-      // 查找指定的笔记
-      const note = memoryStorage.notes.get(noteId);
-      if (!note) {
-        return NextResponse.json({ error: "笔记不存在" }, { status: 404 });
-      }
-      return NextResponse.json(note);
-    } else if (notebookId) {
-      // 查找指定小册子的笔记
-      const filteredNotes = memoryStorage.notes.get(undefined, notebookId);
-      return NextResponse.json(filteredNotes);
-    } else {
-      // 返回所有笔记
-      const allNotes = memoryStorage.notes.get();
-      return NextResponse.json(allNotes);
-    }
-  } catch (error) {
-    console.error("获取笔记失败:", error);
-    return NextResponse.json({ error: "获取失败" }, { status: 500 });
+  // Count words (Chinese characters count as words)
+  const wordCount = contentPlain.length;
+
+  const newNote = await noteService.create({
+    title: validatedData.title,
+    content: validatedData.content,
+    contentPlain,
+    wordCount,
+    theme: validatedData.theme,
+    isDraft: validatedData.isDraft,
+    notebookId: validatedData.notebookId,
+    userId: session.user.id,
+  });
+
+  return createApiResponse(newNote, 201);
+});
+
+// 获取所有笔记或单个笔记
+export const GET = withErrorHandler(async (req: NextRequest) => {
+  const session = await auth();
+  if (!session?.user?.id) {
+    throw new AuthError();
   }
-}
 
-export async function PATCH(req: NextRequest) {
-  try {
-    // 暂时允许未登录用户更新笔记
-    const userId = "1";
+  const { searchParams } = new URL(req.url);
+  const noteId = searchParams.get("id");
+  const notebookId = searchParams.get("notebookId");
 
-    const { searchParams } = new URL(req.url);
-    const noteId = searchParams.get("id");
-
-    if (!noteId) {
-      return NextResponse.json({ error: "缺少笔记ID" }, { status: 400 });
+  if (noteId) {
+    // 查找指定的笔记
+    const note = await noteService.getById(noteId, session.user.id);
+    if (!note) {
+      throw new NotFoundError();
     }
+    return createApiResponse(note);
+  } else if (notebookId) {
+    // 查找指定小册子的笔记
+    const filteredNotes = await noteService.getByNotebookId(notebookId, session.user.id);
+    return createApiResponse(filteredNotes);
+  } else {
+    // 返回所有笔记
+    const allNotes = await noteService.getAll(session.user.id);
+    return createApiResponse(allNotes);
+  }
+});
 
-    const body = await req.json();
-    const validatedData = createNoteSchema.partial().parse(body);
+// 更新笔记
+export const PATCH = withErrorHandler(async (req: NextRequest) => {
+  const session = await auth();
+  if (!session?.user?.id) {
+    throw new AuthError();
+  }
 
-    // 查找要更新的笔记
-    const existingNote = memoryStorage.notes.get(noteId);
-    if (!existingNote) {
-      return NextResponse.json({ error: "笔记不存在" }, { status: 404 });
-    }
+  const { searchParams } = new URL(req.url);
+  const noteId = searchParams.get("id");
 
-    // 提取纯文本用于搜索
-    const contentPlain = validatedData.content
-      ? validatedData.content
-          .replace(/<[^>]*>/g, "")
-          .replace(/\s+/g, " ")
-          .trim()
-      : existingNote.contentPlain;
+  if (!noteId) {
+    throw new NotFoundError("缺少笔记ID");
+  }
 
-    // 计算字数（中文字符计为单词）
-    const wordCount = contentPlain.length;
+  const body = await req.json();
+  const validatedData = createNoteSchema.partial().parse(body);
 
-    // 更新笔记
-    const updatedNote = {
-      ...existingNote,
+  // 提取纯文本用于搜索
+  const contentPlain = validatedData.content
+    ? validatedData.content
+        .replace(/<[^>]*>/g, "")
+        .replace(/\s+/g, " ")
+        .trim()
+    : undefined;
+
+  // 计算字数（中文字符计为单词）
+  const wordCount = contentPlain ? contentPlain.length : undefined;
+
+  const updatedNote = await noteService.update(
+    noteId,
+    {
       ...validatedData,
       contentPlain,
       wordCount,
-      updatedAt: new Date().toISOString(),
-    };
+    },
+    session.user.id
+  );
 
-    // 保存更新
-    const result = memoryStorage.notes.update(noteId, updatedNote);
-    if (!result) {
-      return NextResponse.json({ error: "更新失败" }, { status: 500 });
-    }
-
-    return NextResponse.json(updatedNote);
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: "数据验证失败", details: error.errors },
-        { status: 400 }
-      );
-    }
-
-    console.error("更新笔记失败:", error);
-    return NextResponse.json({ error: "更新失败" }, { status: 500 });
+  if (!updatedNote) {
+    throw new NotFoundError();
   }
-}
 
-export async function DELETE(req: NextRequest) {
-  try {
-    // 暂时允许未登录用户删除笔记
-    const userId = "1";
+  return createApiResponse(updatedNote);
+});
 
-    const { searchParams } = new URL(req.url);
-    const noteId = searchParams.get("id");
-
-    if (!noteId) {
-      return NextResponse.json({ error: "缺少笔记ID" }, { status: 400 });
-    }
-
-    // 删除笔记
-    const success = memoryStorage.notes.delete(noteId);
-    if (!success) {
-      return NextResponse.json({ error: "笔记不存在" }, { status: 404 });
-    }
-
-    return NextResponse.json({ message: "删除成功" });
-  } catch (error) {
-    console.error("删除笔记失败:", error);
-    return NextResponse.json({ error: "删除失败" }, { status: 500 });
+// 删除笔记
+export const DELETE = withErrorHandler(async (req: NextRequest) => {
+  const session = await auth();
+  if (!session?.user?.id) {
+    throw new AuthError();
   }
-}
+
+  const { searchParams } = new URL(req.url);
+  const noteId = searchParams.get("id");
+
+  if (!noteId) {
+    throw new NotFoundError("缺少笔记ID");
+  }
+
+  const success = await noteService.delete(noteId, session.user.id);
+  if (!success) {
+    throw new NotFoundError();
+  }
+
+  return createApiResponse({ message: "删除成功" });
+});

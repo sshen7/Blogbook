@@ -33,24 +33,48 @@ const buttonVariants = cva(
   }
 )
 
+// 按钮类型定义
+export type ButtonVariant = VariantProps<typeof buttonVariants>["variant"];
+export type ButtonSize = VariantProps<typeof buttonVariants>["size"];
+
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
-  asChild?: boolean
+  asChild?: boolean;
+  loading?: boolean;
+  disabled?: boolean;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button"
+  ({ className, variant, size, asChild = false, loading = false, disabled, ...props }, ref) => {
+    const Comp = asChild ? Slot : "button";
+
+    const isDisabled = loading || disabled;
+
     return (
       <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
+        className={cn(
+          buttonVariants({ variant, size, className }),
+          loading && "cursor-wait opacity-75",
+          isDisabled && "cursor-not-allowed"
+        )}
         ref={ref}
+        disabled={isDisabled}
         {...props}
       />
-    )
+    );
   }
 )
 Button.displayName = "Button"
+
+// 预定义的按钮变体
+export const buttonVariantsMap = {
+  primary: "default",
+  danger: "destructive",
+  outline: "outline",
+  secondary: "secondary",
+  ghost: "ghost",
+  link: "link",
+} as const;
 
 export { Button, buttonVariants }

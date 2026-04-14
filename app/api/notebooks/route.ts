@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { memoryStorage } from "@/lib/memory-storage";
+import { withErrorHandler } from "@/lib/api-middleware";
+import { notebookService } from "@/lib/prisma-service";
 
 const createNotebookSchema = z.object({
   title: z.string().min(1).max(100),
@@ -11,127 +12,95 @@ const createNotebookSchema = z.object({
 });
 
 // 创建笔记本
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
-    const validatedData = createNotebookSchema.parse(body);
-
-    const newNotebook = {
-      id: `notebook_${Date.now()}`,
-      title: validatedData.title,
-      description: validatedData.description || null,
-      coverType: validatedData.coverType,
-      coverValue: validatedData.coverValue,
-      theme: validatedData.theme,
-      sortOrder: 0,
-      userId: "1",
-      isArchived: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      _count: { notes: 0 }
-    };
-
-    // 存储到内存中
-    const createdNotebook = memoryStorage.notebooks.create(newNotebook);
-
-    return NextResponse.json(createdNotebook, { status: 201 });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: "数据验证失败", details: error.errors },
-        { status: 400 }
-      );
-    }
-
-    console.error("创建笔记本失败:", error);
-    return NextResponse.json({ error: "创建失败" }, { status: 500 });
+export const POST = withErrorHandler(async (req: NextRequest) => {
+  const session = await auth();
+  if (!session?.user?.id) {
+    throw new AuthError();
   }
-}
+
+  const body = await req.json();
+  const validatedData = createNotebookSchema.parse(body);
+
+  const newNotebook = await notebookService.create({
+    title: validatedData.title,
+    description: validatedData.description || null,
+    coverType: validatedData.coverType,
+    coverValue: validatedData.coverValue,
+    theme: validatedData.theme,
+    sortOrder: 0,
+    userId: session.user.id,
+    isArchived: false,
+  });
+
+  return createApiResponse(newNotebook, 201);
+});
 
 // 获取所有笔记本或单个笔记本
-export async function GET(req: NextRequest) {
-  try {
-    const { searchParams } = new URL(req.url);
-    const id = searchParams.get("id");
-
-    if (id) {
-      // 获取单个笔记本
-      const notebook = memoryStorage.notebooks.get(id);
-      if (!notebook) {
-        return NextResponse.json({ error: "笔记本不存在" }, { status: 404 });
-      }
-      return NextResponse.json(notebook);
-    } else {
-      // 获取所有笔记本
-      const filteredNotebooks = memoryStorage.notebooks.get()
-        .sort((a, b) => a.sortOrder - b.sortOrder);
-
-      return NextResponse.json(filteredNotebooks);
-    }
-  } catch (error) {
-    console.error("获取笔记本失败:", error);
-    return NextResponse.json({ error: "获取失败" }, { status: 500 });
+export const GET = withErrorHandler(async (req: NextRequest) => {
+  const session = await auth();
+  if (!session?.user?.id) {
+    throw new AuthError();
   }
-}
+
+  const { searchParams } = new URL(req.url);
+  const id = searchParams.get("id");
+
+  if (id) {
+    // 获取单个笔记本
+    const notebook = await notebookService.getById(id, session.user.id);
+    if (!notebook) {
+      throw new NotFoundError();
+    }
+    return createApiResponse(notebook);
+  } else {
+    // 获取所有笔记本
+    const notebooks = await notebookService.getAll(session.user.id);
+    return createApiResponse(notebooks);
+  }
+});
 
 // 更新笔记本
-export async function PATCH(req: NextRequest) {
-  try {
-    // 从URL查询参数中获取id
-    const { searchParams } = new URL(req.url);
-    const id = searchParams.get("id");
-    
-    if (!id) {
-      return NextResponse.json({ error: "缺少ID" }, { status: 400 });
-    }
-
-    const body = await req.json();
-
-    // 查找要更新的笔记本
-    const existingNotebook = memoryStorage.notebooks.get(id);
-    if (!existingNotebook) {
-      return NextResponse.json({ error: "笔记本不存在" }, { status: 404 });
-    }
-
-    // 更新笔记本
-    const updatedNotebook = {
-      ...existingNotebook,
-      ...body,
-      updatedAt: new Date().toISOString(),
-    };
-
-    // 保存更新
-    const result = memoryStorage.notebooks.update(id, updatedNotebook);
-    if (!result) {
-      return NextResponse.json({ error: "更新失败" }, { status: 500 });
-    }
-
-    return NextResponse.json(updatedNotebook);
-  } catch (error) {
-    console.error("更新笔记本失败:", error);
-    return NextResponse.json({ error: "更新失败" }, { status: 500 });
+export const PATCH = withErrorHandler(async (req: NextRequest) => {
+  const session = await auth();
+  if (!session?.user?.id) {
+    throw new AuthError();
   }
-}
+
+  const { searchParams } = new URL(req.url);
+  const id = searchParams.get("id");
+
+  if (!id) {
+    throw new NotFoundError("缺少ID");
+  }
+
+  const body = await req.json();
+
+  const updatedNotebook = await notebookService.update(id, body, session.user.id);
+  if (!updatedNotebook) {
+    throw new NotFoundError();
+  }
+
+  return createApiResponse(updatedNotebook);
+});
 
 // 删除笔记本
-export async function DELETE(req: NextRequest) {
-  try {
-    const { searchParams } = new URL(req.url);
-    const id = searchParams.get("id");
-
-    if (!id) {
-      return NextResponse.json({ error: "缺少ID" }, { status: 400 });
-    }
-
-    // 删除笔记本
-    const success = memoryStorage.notebooks.delete(id);
-    if (!success) {
-      return NextResponse.json({ error: "笔记本不存在" }, { status: 404 });
-    }
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("删除笔记本失败:", error);
-    return NextResponse.json({ error: "删除失败" }, { status: 500 });
+export const DELETE = withErrorHandler(async (req: NextRequest) => {
+  const session = await auth();
+  if (!session?.user?.id) {
+    throw new AuthError();
   }
-}
+
+  const { searchParams } = new URL(req.url);
+  const id = searchParams.get("id");
+
+  if (!id) {
+    throw new NotFoundError("缺少ID");
+  }
+
+  const success = await notebookService.delete(id, session.user.id);
+  if (!success) {
+    throw new NotFoundError();
+  }
+
+  return createApiResponse({ success: true });
+});

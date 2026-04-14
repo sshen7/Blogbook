@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, LoadingSkeleton } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 interface Notebook {
   id: string;
@@ -51,7 +53,7 @@ export default function BookshelfPage() {
   if (isLoading) {
     return (
       <div className="bookshelf-page flex items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">加载中...</div>
+        <LoadingSkeleton className="w-64 h-8" />
       </div>
     );
   }
@@ -71,95 +73,103 @@ export default function BookshelfPage() {
       {/* Content */}
       <div className="booklet-grid">
         {notebooks.length === 0 ? (
-          <div className="empty-state col-span-full">
-            <h2>还没有小册子</h2>
-            <p>创建你的第一本小册子，开始记录吧</p>
-            <button 
-              className="mt-4 px-6 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition-colors"
-              onClick={() => router.push("/notebook/create")}
-            >
-              创建小册子
-            </button>
-          </div>
+          <Card className="empty-state col-span-full">
+            <CardContent className="pt-6">
+              <h2>还没有小册子</h2>
+              <p>创建你的第一本小册子，开始记录吧</p>
+              <Button
+                className="mt-4"
+                onClick={() => router.push("/notebook/create")}
+              >
+                创建小册子
+              </Button>
+            </CardContent>
+          </Card>
         ) : (
           <>
             {notebooks.map((notebook) => (
-              <div key={notebook.id} className="booklet-card">
-                <div 
-                  className="booklet-cover" 
+              <Card key={notebook.id} className="booklet-card">
+                <div
+                  className="booklet-cover"
                   style={{
                     backgroundColor: notebook.coverValue || '#4f46e5'
                   }}
                 >
-                  <h3 className="booklet-card-title">{notebook.title}</h3>
+                  <CardTitle className="booklet-card-title">{notebook.title}</CardTitle>
                 </div>
-                <div className="booklet-card-content">
-                  <p className="booklet-card-desc">{notebook.description || "无描述"}</p>
+                <CardContent className="booklet-card-content">
+                  <CardDescription className="booklet-card-desc">
+                    {notebook.description || "无描述"}
+                  </CardDescription>
                   <div className="booklet-card-meta">
                     <span>{notebook._count.notes} 篇笔记</span>
                     <span>{formatDate(notebook.createdAt)}</span>
                   </div>
                   <div className="booklet-card-buttons">
-                    <button 
+                    <Button
                       className="booklet-card-btn"
                       onClick={() => router.push(`/notebook/${notebook.id}`)}
                     >
                       查看
-                    </button>
-                    <button 
+                    </Button>
+                    <Button
                       className="booklet-card-btn secondary"
                       onClick={() => router.push(`/notebook/${notebook.id}/edit`)}
                     >
                       编辑
-                    </button>
+                    </Button>
                   </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             ))}
             {/* 新建小册子按钮 */}
-            <div className="booklet-card" onClick={() => router.push("/notebook/create")} style={{ cursor: 'pointer' }}>
+            <Card
+              className="booklet-card"
+              onClick={() => router.push("/notebook/create")}
+              style={{ cursor: 'pointer' }}
+            >
               <div className="booklet-cover" style={{ backgroundColor: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <h3 className="booklet-card-title" style={{ fontSize: '2rem' }}>+</h3>
+                <CardTitle className="booklet-card-title" style={{ fontSize: '2rem' }}>+</CardTitle>
               </div>
-              <div className="booklet-card-content">
-                <p className="booklet-card-desc">新建小册子</p>
+              <CardContent className="booklet-card-content">
+                <CardDescription className="booklet-card-desc">新建小册子</CardDescription>
                 <div className="booklet-card-meta">
                   <span></span>
                   <span></span>
                 </div>
-                <button className="booklet-card-btn">
+                <Button className="booklet-card-btn">
                   创建
-                </button>
-              </div>
-            </div>
+                </Button>
+              </CardContent>
+            </Card>
           </>
         )}
       </div>
 
       {/* FAB */}
       <div className="fab-container">
-        <button 
+        <Button
           className="fab"
           onClick={() => router.push("/note/create")}
         >
           +
-        </button>
+        </Button>
       </div>
 
       {/* Navigation buttons */}
       <div style={{ position: 'fixed', bottom: '2rem', left: '2rem', display: 'flex', gap: '1rem', zIndex: 99 }}>
-        <button 
+        <Button
           className="home-btn"
           onClick={() => router.push("/")}
         >
           首页
-        </button>
-        <button 
+        </Button>
+        <Button
           className="go-to-notes"
           onClick={() => router.push("/notes")}
         >
           笔记列表 →
-        </button>
+        </Button>
       </div>
     </div>
   );

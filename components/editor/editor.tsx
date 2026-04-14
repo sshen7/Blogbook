@@ -7,6 +7,7 @@ import { generateThemeStyles, getThemeById } from "@/lib/themes";
 import { cn } from "@/lib/utils";
 import { EditorToolbar } from "./editor-toolbar";
 import { EditorBubbleMenu } from "./editor-bubble-menu";
+import { sanitizeHtml, extractPlainText, validateRichText, isValidImageUrl } from "@/lib/xss-protection";
 
 interface EditorProps {
   content?: string;
@@ -35,22 +36,24 @@ export function Editor({
 
   const addImage = () => {
     const url = window.prompt("输入图片地址");
-    if (url && editor) {
+    if (url && editor && isValidImageUrl(url)) {
       editor.chain().focus().setImage({ src: url }).run();
+    } else if (url) {
+      alert("无效的图片 URL");
     }
   };
 
   const editor = useEditor({
     extensions: [...editorExtensions, markdownShortcuts, wordCountExtension],
-    content,
+    content: sanitizeHtml(content),
     editable,
     immediatelyRender: true,
     onUpdate: useCallback(
       ({ editor }: { editor: TiptapEditor }) => {
-        const html = editor.getHTML();
+        const html = sanitizeHtml(editor.getHTML());
         onChange?.(html);
 
-        const text = editor.getText();
+        const text = extractPlainText(html);
         const words = text.trim().split(/\s+/).filter((w) => w.length > 0);
         onWordCountChange?.({
           words: words.length,
